@@ -1,0 +1,31 @@
+Registrar animal segun las siguientes consideraciones:
+
+1. Campo Tipo de animal un seletc que permita los siguientes animales:
+
+"Becerro", "Becerra", "Maute", "Mauta", "Novilla", "Toro", "Vaca", "Vaca Preñada", "Vaca de ordeño"
+
+
+
+si se selecciona vaca de ordeño mostrar un campo que diga: Indique cuantos partos tiene debe ser de 1 en adelante, osea debe esta 1 por defecto y poder seleccionar 2, 3 etc.
+
+
+
+2. Campo: Cantidad de animales un select que permita colocar la cantidad de animales que se requiera.
+
+
+
+3. Campo : Procedencia este campo debe tener 2 opciones Nacido en finca o Adquirido. sin importar la cantidad de animales a ingresar.
+
+4. Fecha de Nacimiento este campo es opcional pero si se selecciona Nacido en Finca y se van a ingresar 5 animales, sebe ingresar 5 fechas, si el usuario no llena nada rellenar con nat o nan lo que se considere en cuanto a Fecha de Adquisición si es Adquirido, en esta caso una sola fecha y si es adquirido debe ser obligatorio llenarlo para poder guardar.
+
+5. Peso promedio este campo es opcional pero si en cantidad de animales si seleccionan 5 debe permitir digitar cinco peso acorde a la cantidad de animales solictado separados por "," sino si el usuario no lo llena, rellenar automáticamente con nan o nat lo que sea mejor:
+
+6. Hierro, debe ser si o no, independientemente de la cantidad de animales, este campo es obligatorio para guardar animales
+
+7. ID, este campo es opcional y depende de la cantidad de animales seleccionados si el usuario ejemplo elige ingresar 5 animales deben colocarse 5 ID, si el usuario no coloca nada rellenar con nan o nat lo que se considere mejor.
+
+
+
+8. Campo Potero si debe ser uno solo sin importar la cantidad de animales y debe ser obligatorio llenarlo.
+
+9. Campo comentarios debe ser un comentario sin importar la cantidad de animales si el usuario no lo llena rellenar con nat o nan segun lo que sea mejor.

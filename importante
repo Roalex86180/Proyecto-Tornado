@@ -1,0 +1,54 @@
+st.header("Resumen General")
+
+        # TOTAL ANIMALES
+        st.markdown(f"""
+        <div style='
+            background: linear-gradient(135deg, #4FC3F7, #0288D1);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            color: white;
+            font-size: 22px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+        '>
+            <h2 style='margin-bottom:10px;'>🐮 Total Animales</h2>
+            <div style='font-size: 44px; font-weight: bold;'>{len(animales_df)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Tipos de animales
+        st.markdown("---")
+        st.subheader("Tipos de Animales")
+        tipos = animales_df["Tipo"].value_counts()
+        col1, col2, col3 = st.columns(3)
+        cols = [col1, col2, col3]
+
+        for idx, (tipo, count) in enumerate(tipos.items()):
+            col = cols[idx % 3]
+            with col:
+                st.markdown(f"""
+                <div style='
+                    background-color: #f1f8ff;
+                    border-left: 6px solid #2196F3;
+                    padding: 15px;
+                    margin: 8px 0;
+                    border-radius: 8px;
+                    box-shadow: 1px 1px 5px rgba(0,0,0,0.05);
+                '>
+                    <h4 style='margin: 0 0 5px;'>{tipo}</h4>
+                    <p style='font-size: 24px; margin: 0; color: #0D47A1; font-weight: bold;'>{count}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+
+
+
+                # ---- HIDE STREAMLIT STYLE ----
+    hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+    st.markdown(hide_st_style, unsafe_allow_html=True)
