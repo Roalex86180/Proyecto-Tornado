@@ -41,6 +41,11 @@ def main():
     menu = st.sidebar.radio("Seleccione el tipo de registro:", ["Registro de animales", "Registro de bajas", "Produccion Leche", 
             "Rotacion de Potreros", "Edicion Tipo de Animales","Borrar base de datos"], key="form_menu_radio")
     # Cargar datos existentes, forzando ID como str y parseo fechas
+
+
+# -----------------------------------
+# Cargar archivo de animales
+# -----------------------------------
     try:
         df = pd.read_csv(
             ARCHIVO,
@@ -48,44 +53,52 @@ def main():
             dtype={"ID": str}
         )
     except FileNotFoundError:
-        # Crear dataframe vacío con columnas esperadas
         df = pd.DataFrame(columns=[
             "Fecha", "Tipo", "Partos", "Cantidad", "Procedencia",
             "Peso Promedio", "Hierro", "ID", "Potrero", "Comentarios",
             "Fecha Nacimiento", "Fecha Adquisición"
         ])
-        df.to_csv(ARCHIVO, index=False)  # 👈 Agrega esta línea
+        df.to_csv(ARCHIVO, index=False)
     except ValueError:
         df = pd.read_csv(ARCHIVO, dtype={"ID": str})
         for col in ["Fecha", "Fecha Nacimiento", "Fecha Adquisición"]:
             if col in df.columns:
-                df[col] = pd.to_datetime(df[col])
+                df[col] = pd.to_datetime(df[col], errors='coerce')
 
+    if "df_original" not in st.session_state:
+        st.session_state.df_original = df.copy()
 
-
-    try:
-        animales = pd.read_csv(ARCHIVO, parse_dates=["Fecha", "Fecha Nacimiento", "Fecha Adquisición"])
-    except FileNotFoundError:
-        st.error("El archivo de animales no fue encontrado.")
-        st.stop()
-
+    df_original = df.copy()  # Para comparar luego o hacer respaldo
+    animales = df.copy()     # Si prefieres seguir usando "animales"
+    
+    # -----------------------------------
+    # Cargar archivo de rotaciones
+    # -----------------------------------
     try:
         rotaciones = pd.read_csv(ROTACIONES)
     except FileNotFoundError:
-        rotaciones = pd.DataFrame(columns=["Fecha Rotacion", "Tipo", "Nombre", "Potrero_Anterior", "Potrero_Nuevo", "Comentario"])
-    #---------------------------------------------------------------------------#
+        rotaciones = pd.DataFrame(columns=[
+            "Fecha Rotacion", "Tipo", "Nombre",
+            "Potrero_Anterior", "Potrero_Nuevo", "Comentario"
+        ])
 
+    # -----------------------------------
+    # Cargar archivo de leche
+    # -----------------------------------
     try:
-        df_leche = pd.read_csv(
-        LECHE,
-        parse_dates=["Fecha"]
-        )
+        df_leche = pd.read_csv(LECHE, parse_dates=["Fecha"])
     except FileNotFoundError:
         df_leche = pd.DataFrame(columns=["Fecha", "Litros", "Precio"])
 
-
+    # -----------------------------------
+    # Cargar archivo de respaldo (bajas)
+    # -----------------------------------
     try:
-        df_respaldo = pd.read_csv(RESPALDO, dtype={"ID": str}, parse_dates=["Fecha", "Fecha Nacimiento", "Fecha Adquisición", "Fecha_baja"])
+        df_respaldo = pd.read_csv(
+            RESPALDO,
+            dtype={"ID": str},
+            parse_dates=["Fecha", "Fecha Nacimiento", "Fecha Adquisición", "Fecha_baja"]
+        )
     except FileNotFoundError:
         df_respaldo = pd.DataFrame(columns=[
             "Fecha", "Tipo", "Partos", "Cantidad", "Procedencia",
@@ -93,10 +106,7 @@ def main():
             "Fecha Nacimiento", "Fecha Adquisición", "Fecha_baja"
         ])
 
-        
-                
-
-
+    
 
     if menu == "Registro de animales":
             
@@ -222,22 +232,20 @@ def main():
                 st.rerun()
 
             if st.button("Deshacer último registro"):
-                if not df.empty:
-                    df = df.iloc[:-1]
+                if not df.equals(st.session_state.df_original):
+                    df = st.session_state.df_original.copy()
                     df.to_csv(ARCHIVO, index=False)
                     st.success("Último registro eliminado.")
                     for key in ["id_input", "peso_input", "comentarios_input", "tipo"]:
                         if key in st.session_state:
                             del st.session_state[key]
                     st.rerun()
-
-
-                    # Recargar el archivo actualizado
-                    df = pd.read_csv(ARCHIVO, dtype={"ID": str})
-                    
+                else:
+                    st.warning("No hay registros nuevos para deshacer.")
 
             st.subheader("Animales registrados")
             st.dataframe(df)
+
 
             #---------------------------------------------------------#
             #------------Registro de Bajas----------------------------#
@@ -357,7 +365,7 @@ def main():
                 st.info(f"Actualmente existen {len(df_filtrado)} animales del tipo '{tipo_baja}'.")
 
                 cantidad_baja = st.number_input("Ingrese la cantidad a dar de baja", min_value=1, max_value=len(df_filtrado), step=1)
-                motivo = st.selectbox("Motivo de la baja", ["Venta", "Muerte", "Otro"])
+                motivo = st.selectbox("Motivo de la baja", ["Venta", "Muerte", "Otros"])
                 comentario = st.text_input("Comentarios", key="comentariosb_input")
                 fecha_baja = st.date_input("Fecha de la baja")
 
@@ -407,6 +415,7 @@ def main():
                         st.subheader("Registro de bajas (bajas.csv)")
                         st.dataframe(df_bajas)
 
+               # Bloque para deshacer el último cambio
                 # Bloque para deshacer el último cambio
                 if st.button("Deshacer última baja"):
 
@@ -418,32 +427,35 @@ def main():
                         if respaldo.empty:
                             st.info("ℹ️ No hay registros en respaldo para deshacer.")
                         else:
-                            # Detectar la fecha más reciente en respaldo (última tanda de bajas)
-                            ultima_fecha = respaldo["Fecha_baja"].max()
+                            # Obtener la fecha de baja de la primera fila (última tanda dada de baja)
+                            ultima_fecha = respaldo.iloc[0]["Fecha_baja"]
 
-                            # Filas que tienen esa última fecha (última tanda)
-                            filas_restaurar = respaldo[respaldo["Fecha_baja"] == ultima_fecha].copy()
+                            # Verificamos que esa fecha aún exista en bajas.csv
+                            if ultima_fecha not in df_bajas["Fecha_baja"].values:
+                                st.info("ℹ️ Esa baja ya fue deshecha previamente. No hay nada que restaurar.")
+                            else:
+                                # Filas que tienen esa última fecha (última tanda)
+                                filas_restaurar = respaldo[respaldo["Fecha_baja"] == ultima_fecha].copy()
 
-                            # Eliminar columna Fecha_baja para agregar a animales
-                            filas_restaurar_sin_fecha = filas_restaurar.drop(columns=["Fecha_baja"], errors="ignore")
+                                # Eliminar columna Fecha_baja para agregar a animales
+                                filas_restaurar_sin_fecha = filas_restaurar.drop(columns=["Fecha_baja"], errors="ignore")
 
-                            # Restaurar en animales.csv
-                            df_animales = pd.concat([df_animales, filas_restaurar_sin_fecha], ignore_index=True)
-                            df_animales.to_csv(ARCHIVO, index=False)
+                                # Restaurar en animales.csv evitando duplicados exactos
+                                df_animales = pd.concat([df_animales, filas_restaurar_sin_fecha], ignore_index=True)
+                                df_animales = df_animales.drop_duplicates()
+                                df_animales.to_csv(ARCHIVO, index=False)
 
-                            # Eliminar estas filas del respaldo
-                            respaldo = respaldo[respaldo["Fecha_baja"] != ultima_fecha]
-                            respaldo.to_csv(RESPALDO, index=False)
+                                # Eliminar estas filas del respaldo
+                                respaldo = respaldo[respaldo["Fecha_baja"] != ultima_fecha]
+                                respaldo.to_csv(RESPALDO, index=False)
 
-                            # Eliminar de bajas.csv las filas con esa fecha
-                            df_bajas = df_bajas[df_bajas["Fecha_baja"] != ultima_fecha]
-                            df_bajas.to_csv(BAJAS, index=False)
+                                # Eliminar de bajas.csv las filas con esa fecha
+                                df_bajas = df_bajas[df_bajas["Fecha_baja"] != ultima_fecha]
+                                df_bajas.to_csv(BAJAS, index=False)
 
-                            st.success(f"✅ Se deshizo la última baja de fecha {ultima_fecha}.")
-                            st.dataframe(df_animales)
+                                st.success(f"✅ Se deshizo la última baja de fecha {ultima_fecha}.")
+                                st.dataframe(df_animales)
 
-                    else:
-                        st.warning("⚠️ No existen archivos necesarios para deshacer.")
 
 
         registrar_bajas()

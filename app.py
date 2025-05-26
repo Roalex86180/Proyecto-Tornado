@@ -651,13 +651,17 @@ if opcion == "Dashboard":
 
         motivos_posibles = ["Venta", "Muerte", "Otros"]
         cols = st.columns(len(motivos_posibles))
+        bajas_filtradas["Motivo"] = bajas_filtradas["Motivo"].fillna("Otros")
 
         for i, motivo in enumerate(motivos_posibles):
             with cols[i]:
                 if not bajas_filtradas.empty:
-                    motivo_df = bajas_filtradas[bajas_filtradas["Motivo"].str.lower() == motivo.lower()]
+                    # Aseguramos que Motivo no tenga NaN y que sea string para aplicar lower()
+                    motivo_df = bajas_filtradas[
+                        bajas_filtradas["Motivo"].fillna("").str.lower() == motivo.lower()
+                    ]
                 else:
-                    motivo_df = pd.DataFrame(columns=bajas_filtradas.columns)  # vacío pero con las columnas necesarias
+                    motivo_df = pd.DataFrame(columns=bajas_filtradas.columns)  # vacío pero con columnas
 
                 total = len(motivo_df)
                 icon = "💰" if motivo.lower() == "venta" else "☠️" if motivo.lower() == "muerte" else "🚚"
@@ -666,7 +670,7 @@ if opcion == "Dashboard":
 
                 if total > 0:
                     # Crear resumen por tipo y comentario
-                    motivo_df["Resumen"] = motivo_df["Tipo"].str.title() + " – " + motivo_df["Comentarios"].str.strip()
+                    motivo_df["Resumen"] = motivo_df["Tipo"].str.title() + " – " + motivo_df["Comentarios"].fillna("").str.strip()
                     resumen = motivo_df["Resumen"].value_counts()
 
                     for linea, veces in resumen.items():
